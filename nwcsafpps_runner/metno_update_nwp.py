@@ -167,7 +167,7 @@ def update_nwp(params):
     result_files = dict()
     tempfile.tempdir = params['options']['nwp_outdir']
 
-    ecmwf_path = os.path.join(params['options']['ecmwf_path']
+    ecmwf_path = params['options']['ecmwf_path']
     if not os.path.exists(ecmwf_path):
         ecmwf_path = ecmwf_path.replace("storeB","storeA")
         LOG.warning("Need to replace storeB with storeA for ecmwf_path: ", ecmwf_path)

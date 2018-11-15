@@ -65,7 +65,7 @@ SUPPORTED_NOAA_SATELLITES = ['NOAA-15', 'NOAA-18', 'NOAA-19',
                              'noaa15', 'noaa18', 'noaa19']
 SUPPORTED_METOP_SATELLITES = ['Metop-B', 'Metop-A']
 SUPPORTED_EOS_SATELLITES = ['EOS-Terra', 'EOS-Aqua']
-SUPPORTED_JPSS_SATELLITES = ['Suomi-NPP', 'JPSS-1', 'JPSS-2']
+SUPPORTED_JPSS_SATELLITES = ['npp', 'Suomi-NPP', 'JPSS-1', 'JPSS-2']
 
 SUPPORTED_PPS_SATELLITES = (SUPPORTED_NOAA_SATELLITES +
                             SUPPORTED_METOP_SATELLITES +
@@ -84,11 +84,11 @@ METOP_NAME_LETTER = {'metop01': 'metopb', 'metop02': 'metopa'}
 METOP_NAME = {'metop01': 'Metop-B', 'metop02': 'Metop-A'}
 METOP_NAME_INV = {'metopb': 'metop01', 'metopa': 'metop02'}
 
-SATELLITE_NAME = {'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
+SATELLITE_NAME = {'noaa19': 'noaa19', 'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
                   'NOAA-15': 'noaa15',
                   'Metop-A': 'metop02', 'Metop-B': 'metop01',
                   'Metop-C': 'metop03',
-                  'Suomi-NPP': 'npp',
+                  'npp': 'npp', 'Suomi-NPP': 'npp',
                   'EOS-Aqua': 'eos2', 'EOS-Terra': 'eos1'}
 SENSOR_LIST = {}
 for sat in SATELLITE_NAME:
@@ -208,20 +208,26 @@ def pps_worker(semaphore_obj, scene, job_dict, job_key, publish_q, input_msg):
         LOG.debug("Waiting for acquired semaphore...")
         with semaphore_obj:
             LOG.debug("Acquired semaphore")
-            if scene['platform_name'] in SUPPORTED_EOS_SATELLITES or input_msg.data['antenna'] == "global-segments":
+            antenna = 'antenna'
+            if 'antenna' in input_msg.data:
+                antenna = 'antenna'
+            elif 'env' in input_msg.data:
+                antenna = 'env'
+
+            if scene['platform_name'] in SUPPORTED_EOS_SATELLITES or input_msg.data[antenna] == "global-segments":
                 cmdstr = "%s %s %s %s %s %s" % (PPS_SCRIPT,
                                              SATELLITE_NAME[
                                                  scene['platform_name']],
                                              scene['orbit_number'], scene[
                                                  'satday'],
                                              scene['sathour'],
-                                             input_msg.data['antenna'])
+                                             input_msg.data[antenna])
             else:
                 cmdstr = "%s %s %s 0 0 %s" % (PPS_SCRIPT,
                                            SATELLITE_NAME[
                                                scene['platform_name']],
                                            scene['orbit_number'],
-                                           input_msg.data['antenna'])
+                                           input_msg.data[antenna])
 
             if scene['platform_name'] in SUPPORTED_JPSS_SATELLITES and LVL1_NPP_PATH:
                 cmdstr = cmdstr + ' ' + str(LVL1_NPP_PATH)
@@ -565,6 +571,11 @@ def ready2run(msg, files4pps, job_register, sceneid):
         if 'antenna' in msg.data:
             LOG.debug("antenna in msg.data {}".format(msg.data['antenna']))
             if msg.data['antenna'] == "ears" or msg.data['antenna'] == "global" or msg.data['antenna'] == "global-segments":
+                LOG.debug("is ears or global")
+                number_of_sensors = 1
+        elif 'env' in msg.data:
+            LOG.debug("env in msg.data {}".format(msg.data['env']))
+            if msg.data['env'] == "ears" or msg.data['env'] == "global" or msg.data['env'] == "global-segments":
                 LOG.debug("is ears or global")
                 number_of_sensors = 1
     elif platform_name in SUPPORTED_JPSS_SATELLITES:

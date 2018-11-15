@@ -18,13 +18,13 @@ echo $4
 echo $5
 
 if [ "$5" == "L-BAND" ]; then
-    source_file=/home/ubuntu/pytroll/etc/source_me_MET-pps-v2014-xenial-l
+    source_file=/software/pytroll/etc/source_me_MET-pps-v2014-xenial-l
 elif [ "$5" == "XL-BAND" ]; then
-    source_file=/home/ubuntu/pytroll/etc/source_me_MET-pps-v2014-xenial-xl
+    source_file=/software/pytroll/etc/source_me_MET-pps-v2014-xenial-xl
 elif [ "$5" == "global-segments" ]; then
-    source_file=/home/ubuntu/pytroll/etc/source_me_MET-pps-v2014-xenial-global
+    source_file=/software/pytroll/etc/source_me_MET-pps-v2014-xenial-global
 else
-    source_file=/home/ubuntu/pytroll/etc/source_me_MET-pps-v2014-xenial-$5
+    source_file=/software/pytroll/etc/source_me_MET-pps-v2014-xenial-$5
 fi
 
 source $source_file
@@ -53,9 +53,9 @@ if [ "x$6" != "x" ]; then
 fi
 
 if [ "x$3" == "x0" ] && [ "x$4" == "x0" ]; then
-    echo "USING: python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --cpp 0 --precip 0"
+    echo "USING: python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --cpp 0 --precip 0 --ctth 0"
     python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --cpp 0 --precip 0 --ctth 0
 else
-    echo "USING: python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --satday $3 --sathour $4 --cpp 0 --precip 0"
+    echo "USING: python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --satday $3 --sathour $4 --cpp 0 --precip 0 --ctth 0"
     python /opt/acpg/scr/ppsRunAllParallel.py -p $1 $2 --satday $3 --sathour $4 --cpp 0 --precip 0 --ctth 0
 fi
