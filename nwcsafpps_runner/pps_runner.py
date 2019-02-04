@@ -65,7 +65,7 @@ SUPPORTED_NOAA_SATELLITES = ['NOAA-15', 'NOAA-18', 'NOAA-19',
                              'noaa15', 'noaa18', 'noaa19']
 SUPPORTED_METOP_SATELLITES = ['Metop-B', 'Metop-A']
 SUPPORTED_EOS_SATELLITES = ['EOS-Terra', 'EOS-Aqua']
-SUPPORTED_JPSS_SATELLITES = ['npp', 'Suomi-NPP', 'JPSS-1', 'JPSS-2']
+SUPPORTED_JPSS_SATELLITES = ['npp', 'Suomi-NPP', 'NOAA-20', 'j01', 'JPSS-1', 'NOAA-21', 'j02', 'JPSS-2']
 
 SUPPORTED_PPS_SATELLITES = (SUPPORTED_NOAA_SATELLITES +
                             SUPPORTED_METOP_SATELLITES +
