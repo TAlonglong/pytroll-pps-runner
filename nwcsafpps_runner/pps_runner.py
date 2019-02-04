@@ -65,7 +65,7 @@ SUPPORTED_NOAA_SATELLITES = ['NOAA-15', 'NOAA-18', 'NOAA-19',
                              'noaa15', 'noaa18', 'noaa19']
 SUPPORTED_METOP_SATELLITES = ['Metop-B', 'Metop-A']
 SUPPORTED_EOS_SATELLITES = ['EOS-Terra', 'EOS-Aqua']
-SUPPORTED_JPSS_SATELLITES = ['npp', 'Suomi-NPP', 'JPSS-1', 'JPSS-2']
+SUPPORTED_JPSS_SATELLITES = ['npp', 'Suomi-NPP', 'NOAA-20', 'j01', 'JPSS-1', 'NOAA-21', 'j02', 'JPSS-2']
 
 SUPPORTED_PPS_SATELLITES = (SUPPORTED_NOAA_SATELLITES +
                             SUPPORTED_METOP_SATELLITES +
@@ -84,12 +84,17 @@ METOP_NAME_LETTER = {'metop01': 'metopb', 'metop02': 'metopa'}
 METOP_NAME = {'metop01': 'Metop-B', 'metop02': 'Metop-A'}
 METOP_NAME_INV = {'metopb': 'metop01', 'metopa': 'metop02'}
 
-SATELLITE_NAME = {'noaa19': 'noaa19', 'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
+SATELLITE_NAME = {'noaa19': 'noaa19', 'NOAA-19': 'noaa19',
+                  'NOAA-18': 'noaa18',
                   'NOAA-15': 'noaa15',
-                  'Metop-A': 'metop02', 'Metop-B': 'metop01',
+                  'Metop-A': 'metop02',
+                  'Metop-B': 'metop01',
                   'Metop-C': 'metop03',
-                  'npp': 'npp', 'Suomi-NPP': 'npp',
-                  'EOS-Aqua': 'eos2', 'EOS-Terra': 'eos1'}
+                  'npp': 'npp',
+                  'Suomi-NPP': 'npp',
+                  'NOAA-20': 'noaa20',
+                  'EOS-Aqua': 'eos2',
+                  'EOS-Terra': 'eos1'}
 SENSOR_LIST = {}
 for sat in SATELLITE_NAME:
     if sat in ['NOAA-15']:
@@ -97,7 +102,7 @@ for sat in SATELLITE_NAME:
         SENSOR_LIST[sat] = ['avhrr/3']
     elif sat in ['EOS-Aqua', 'EOS-Terra']:
         SENSOR_LIST[sat] = 'modis'
-    elif sat in ['Suomi-NPP', 'JPSS-1', 'JPSS-2']:
+    elif sat in ['Suomi-NPP', 'NOAA-20', 'JPSS-1', 'JPSS-2']:
         SENSOR_LIST[sat] = 'viirs'
     else:
         SENSOR_LIST[sat] = ['avhrr/3', 'mhs', 'amsu-a']
@@ -154,17 +159,17 @@ def get_outputfiles(path, platform_name, orb):
 
     h5_output = (os.path.join(path, 'S_NWC') + '*' +
                  str(METOP_NAME_LETTER.get(platform_name, platform_name)) +
-                 '_' + str(orb) + '*.h5')
+                 '_' + str(orb).zfill(5) + '*.h5')
     LOG.info(
         "Match string to do a file globbing on hdf5 output files: " + str(h5_output))
     nc_output = (os.path.join(path, 'S_NWC') + '*' +
                  str(METOP_NAME_LETTER.get(platform_name, platform_name)) +
-                 '_' + str(orb) + '*.nc')
+                 '_' + str(orb).zfill(5) + '*.nc')
     LOG.info(
         "Match string to do a file globbing on netcdf output files: " + str(nc_output))
     xml_output = (os.path.join(path, 'S_NWC') + '*' +
                   str(METOP_NAME_LETTER.get(platform_name, platform_name)) +
-                  '_' + str(orb) + '*.xml')
+                  '_' + str(orb).zfill(5) + '*.xml')
     LOG.info(
         "Match string to do a file globbing on xml output files: " + str(xml_output))
     return glob(h5_output) + glob(nc_output) + glob(xml_output)
@@ -214,7 +219,9 @@ def pps_worker(semaphore_obj, scene, job_dict, job_key, publish_q, input_msg):
             elif 'env' in input_msg.data:
                 antenna = 'env'
 
-            if scene['platform_name'] in SUPPORTED_EOS_SATELLITES or input_msg.data[antenna] == "global-segments":
+            if (scene['platform_name'] in SUPPORTED_EOS_SATELLITES or
+                input_msg.data[antenna] == "global-segments" or
+                input_msg.data[antenna] == "ears"):
                 cmdstr = "%s %s %s %s %s %s" % (PPS_SCRIPT,
                                              SATELLITE_NAME[
                                                  scene['platform_name']],
