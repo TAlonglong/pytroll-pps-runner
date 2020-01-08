@@ -28,7 +28,14 @@ import sys
 from glob import glob
 from subprocess import Popen, PIPE
 import threading
-import Queue
+
+try:
+    # python 3
+    from queue import Queue
+except ImportError:
+    # python 2
+    from Queue import Queue
+
 from datetime import datetime, timedelta
 #
 from nwcsafpps_runner.config import get_config
@@ -297,8 +304,8 @@ def pps(options):
     update_nwp(now - timedelta(days=1), NWP_FLENS)
     LOG.info("Ready with nwp preparation...")
 
-    listener_q = Queue.Queue()
-    publisher_q = Queue.Queue()
+    listener_q = Queue()
+    publisher_q = Queue()
 
     pub_thread = FilePublisher(publisher_q, options['publish_topic'], runner_name='pps2018_runner')
     pub_thread.start()

@@ -31,7 +31,7 @@ from glob import glob
 from posttroll.message import Message
 from trollsift.parser import parse
 import socket
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 from datetime import datetime, timedelta
 from nwcsafpps_runner.config import (LVL1_NPP_PATH, LVL1_EOS_PATH)
 import logging

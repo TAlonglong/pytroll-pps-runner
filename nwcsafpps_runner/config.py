@@ -24,7 +24,12 @@
 """
 
 import os
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    #python2
+    import ConfigParser as configparser
+
 import socket
 
 MODE = os.getenv("SMHI_MODE")
@@ -39,7 +44,7 @@ LVL1_EOS_PATH = os.environ.get('LVL1_EOS_PATH', None)
 
 def get_config(configfile):
 
-    conf = ConfigParser.ConfigParser()
+    conf = configparser.SafeConfigParser()
     conf.read(os.path.join(CONFIG_PATH, configfile))
 
     options = {}

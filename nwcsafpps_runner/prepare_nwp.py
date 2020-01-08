@@ -27,16 +27,21 @@ import logging
 from glob import glob
 import os
 from datetime import datetime
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    #python2
+    import ConfigParser as configparser
 import tempfile
 from subprocess import Popen, PIPE
-from helper_functions import run_command
+#from helper_functions import run_command
 
 LOG = logging.getLogger(__name__)
 
 CONFIG_PATH = os.environ.get('PPSRUNNER_CONFIG_DIR', './')
-CONF = ConfigParser.ConfigParser()
-ppsconf_path = os.path.join(CONFIG_PATH, "pps_config.cfg")
+CONF = configparser.SafeConfigParser()
+ppsconf_path = os.path.join(CONFIG_PATH, "pps2018_config.ini")
+print("ppsconf_path:", ppsconf_path)
 LOG.debug("Path to config file = " + str(ppsconf_path))
 CONF.read(ppsconf_path)
 
@@ -165,12 +170,12 @@ def update_nwp(starttime, nlengths):
             timestamp, step = timeinfo.split("+")
             analysis_time = datetime.strptime(timestamp, '%Y%m%d%H%M')
 
-        print analysis_time, starttime
+        print(analysis_time, starttime)
         if analysis_time < starttime:
-            print "skip analysis"
+            print("skip analysis")
             continue
         if int(step[:3]) not in nlengths:
-            print "skip step",int(step[:3]), nlengths
+            print("skip step",int(step[:3]), nlengths)
             continue
 
         LOG.info("timestamp, step: " + str(timestamp) + ' ' + str(step))
