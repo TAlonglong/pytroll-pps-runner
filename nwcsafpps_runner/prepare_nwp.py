@@ -41,7 +41,6 @@ LOG = logging.getLogger(__name__)
 CONFIG_PATH = os.environ.get('PPSRUNNER_CONFIG_DIR', './')
 CONF = configparser.SafeConfigParser()
 ppsconf_path = os.path.join(CONFIG_PATH, "pps2018_config.ini")
-print("ppsconf_path:", ppsconf_path)
 LOG.debug("Path to config file = " + str(ppsconf_path))
 CONF.read(ppsconf_path)
 

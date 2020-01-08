@@ -28,7 +28,7 @@ import tempfile
 from glob import glob
 import os
 from datetime import datetime
-from helper_functions import run_command, run_shell_command
+from nwcsafpps_runner.helper_functions import run_command, run_shell_command
 
 import numpy as np
 
@@ -36,58 +36,21 @@ from eccodes import *
 
 LOG = logging.getLogger(__name__)
 
-def scan_meta(input_file):
-    fin = open(input_file)
+def product(*args, **kwds):
+    # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+    # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+    pools = list(map(tuple, args)) * kwds.get('repeat', 1)
+    result = [[]]
+    for pool in pools:
+        result = [x + [y] for x in result for y in pool]
+    for prod in result:
+        yield tuple(prod)
 
-    #no_messages = codes_count_in_file(fin)
-    #print "no_messages: {}".format(no_messages)
-
-    fields = []
-    LOG.debug("Start check metadata")
-    while 1:
-        field = {}
-        pos = fin.tell()
-        gid_meta = codes_grib_new_from_file(fin,headers_only=True)
-        if gid_meta is None:
-            LOG.debug("Last message Metadata")
-            break
-
-        try:
-            parameter = codes_get(gid_meta, 'indicatorOfParameter')
-        except:
-            parameter = codes_get(gid_meta, 'paramId')
-        level = codes_get(gid_meta, 'level')
-        try:
-            type_of_level = codes_get(gid_meta, 'indicatorOfTypeOfLevel', int)
-        except:
-            #print "indicatorOfTypeOfLevel is missing"
-            type_of_level = None
-
-        #print "parameter: {} level: {} type_of_level: {}".format(parameter, level, type_of_level)
-        field['pos'] = pos
-        field['parameter'] = parameter
-        field['level'] = level
-        field['type_of_level'] = type_of_level
-        fields.append(field)
-        codes_release(gid_meta)
-
-    #print fields
-    fin.seek(0)
-
-    return fin, fields
-
-def copy_field(fin, mgid, _result_file, pos):
-    fin.seek(pos)
-    gid = codes_grib_new_from_file(fin)
-    if gid is None:
-        LOG.debug("Last message")
-        return
-
+#def copy_needed_field(gid, mgid):
+def copy_needed_field(gid, fout):
+    #LOG.debug("Need this")
     nx = codes_get(gid, 'Ni')
     ny = codes_get(gid, 'Nj')
-
-    #print "nx: {}".format(nx)
-    #print "ny: {}".format(ny)
     first_lat = codes_get(gid, 'latitudeOfFirstGridPointInDegrees')
     first_lon = codes_get(gid, 'longitudeOfFirstGridPointInDegrees')
     north_south_step = codes_get(gid, 'jDirectionIncrementInDegrees')
@@ -97,69 +60,32 @@ def copy_field(fin, mgid, _result_file, pos):
         parameter = codes_get(gid, 'indicatorOfParameter')
     except:
         parameter = codes_get(gid, 'paramId')
-    level = codes_get(gid, 'level')
-    LOG.debug("parameter in copy: {} level: {}".format(parameter, level))
 
-    #print "latitudeOfFirstGridPointInDegrees: {}".format(codes_get(gid, 'latitudeOfFirstGridPointInDegrees'))
-    #print "longitudeOfFirstGridPointInDegrees: {}".format(codes_get(gid, 'longitudeOfFirstGridPointInDegrees'))
+    level = codes_get(gid, 'level')
 
     filter_north = 0
 
     new_ny = int((first_lat - filter_north)/north_south_step) + 1
     #print "new_ny: {}".format(new_ny)
 
-    #print "Start reading values..."
+    #print("Start reading values...")
     values = codes_get_values(gid)
-    #print "End reading values..."
-    #print "values type: {}".format(type(values))
+    #print("End reading values...")
     values_r = np.reshape(values,(ny,nx))
-    #print "values shape: {}".format(values.shape)
-    #print "values shape: {}".format(values_r.shape)
 
     new_values = values_r[:new_ny,:]
-    #print "new_values shape: {}".format(new_values.shape)
 
     clone_id = codes_clone(gid)
 
-    #codes_set(clone_id, 'latitudeOfLastGridPointInDegrees', (filter_north-north_south_step))
     codes_set(clone_id, 'latitudeOfLastGridPointInDegrees', (filter_north))
     codes_set(clone_id, 'Nj', new_ny)
 
-    #LOG.info("First_lon type: {}".format(type(first_lon)))
-    #LOG.info("first_lon: {}".format(first_lon))
-    #if (first_lon > 180.099) and (first_lon < 180.101):
-    #    new_first_lon = float(-179.9)
-    #    LOG.info("setting to new first lon; {}".format(new_first_lon))
-    #    codes_set(clone_id, 'longitudeOfFirstGridPointInDegrees', new_first_lon)
-        
-    #print "Start writing values..."
     codes_set_values(clone_id, new_values.flatten())
-    #codes_set_values(clone_id, values)
-    #print "End writing values..."
 
-    codes_grib_multi_append(clone_id, 0, mgid)
-
-    #fout = open(_result_file, 'a')
-    #codes_write(clone_id, fout)
-    #fout.close()
-
+    #codes_grib_multi_append(clone_id, 0, mgid)
+    codes_write(clone_id, fout)
     codes_release(clone_id)
-    codes_release(gid)
-
-    #codes_grib_multi_write(mgid, fout)
-    #codes_grib_multi_release(mgid)
-
-def handle_fields(fin, mgid, _result_file, fields, parameters, level=None, type_of_level=None):
-    for par in parameters:
-        for ref in fields:
-            if level != None and type_of_level != None:
-                if ref['parameter'] == par and ref['level'] == level and ref['type_of_level'] == type_of_level:
-                    LOG.debug("Doing parameter: {} level: {} type_of_level: {}".format(ref['parameter'], ref['level'], ref['type_of_level']))
-                    copy_field(fin, mgid, _result_file, ref['pos'])
-            else:
-                if ref['parameter'] == par :
-                    LOG.debug("Doing parameter: {} level:{}".format(ref['parameter'],ref['level']))
-                    copy_field(fin, mgid, _result_file, ref['pos'])
+    return
 
 def update_nwp(params):
     LOG.info("METNO update nwp")
@@ -244,7 +170,7 @@ def update_nwp(params):
             analysis_time = res['analysis_time']
             timestamp = analysis_time.strftime("%Y%m%d%H%M")
             step_delta = forecast_time - analysis_time
-            step = "{:03d}H{:02d}M".format(step_delta.days*24 + step_delta.seconds/3600,0)
+            step = "{:03d}H{:02d}M".format(int(step_delta.days*24 + step_delta.seconds/3600),0)
             timeinfo = "{:s}{:s}{:s}".format(analysis_time.strftime("%m%d%H%M"), forecast_time.strftime("%m%d%H%M"), res['end'])
         else:
             LOG.error("Not sift pattern given. Can not parse input NWP files")
@@ -260,8 +186,14 @@ def update_nwp(params):
 
         output_parameters = {}
         output_parameters['analysis_time'] = analysis_time
-        output_parameters['step_hour'] = step_delta.days*24 + step_delta.seconds/3600
+        output_parameters['step_hour'] = int(step_delta.days*24 + step_delta.seconds/3600)
         output_parameters['step_min'] = 0
+        try:
+            if not os.path.exists(params['options']['nwp_outdir']):
+                os.makedirs(params['options']['nwp_outdir'])
+        except OSError as e:
+            LOG.error("Failed to create directory: %s", e)
+        result_file = ""
         try:
             result_file = os.path.join(params['options']['nwp_outdir'], compose(params['options']['nwp_output'],output_parameters))
             _result_file = os.path.join(params['options']['nwp_outdir'], compose("."+params['options']['nwp_output'],output_parameters))
@@ -305,57 +237,78 @@ def update_nwp(params):
         else:
             __tmpfile = "/tmp/__tmp"
 
-        mgid = codes_grib_multi_new()
-        codes_grib_multi_support_on()
+        #mgid = codes_grib_multi_new()
+        #codes_grib_multi_support_on()
 
         #Some parameters can be found from the first name, and some from paramID
         #Need to check the second of the first one is not found
         parameter_name_list = ["indicatorOfParameter","paramId"]
 
-        #Do the static fields
-        #Note: field not in the filename variable, but a configured filename for static fields
-        static_filename = params['options']['ecmwf_static_surface']
-        if not os.path.exists(static_filename):
-            static_filename = static_filename.replace("storeB","storeA")
-            LOG.warning("Need to replace storeB with storeA")
-        fin, fields = scan_meta(static_filename)
+        fout = open(_result_file, 'wb')
+        try:
 
-        parameters = [172, 129]
-        level = None
-        type_of_level = None
-        handle_fields(fin, mgid, _result_file, fields, parameters)
-        fin.close()
+            #Do the static fields
+            #Note: field not in the filename variable, but a configured filename for static fields
+            static_filename = params['options']['ecmwf_static_surface']
+            #print("Handeling static file: %s", static_filename)
+            if not os.path.exists(static_filename):
+                static_filename = static_filename.replace("storeB","storeA")
+                LOG.warning("Need to replace storeB with storeA")
 
-        fin, fields = scan_meta(filename)
+            index_vals = []
+            index_keys = ['paramId', 'level']
+            LOG.debug("Start building index")
+            LOG.debug("Handeling file: %s", filename)
+            iid = codes_index_new_from_file(filename, index_keys)
+            filename_n1s = filename.replace('N2D','N1S')
+            if os.path.exists(filename_n1s):
+                LOG.debug("Add to index %s", filename_n1s)
+                codes_index_add_file(iid, filename_n1s)
+            if os.path.exists(static_filename):
+                LOG.debug("Add to index %s", static_filename)
+                codes_index_add_file(iid, static_filename)
+            LOG.debug("Done index")
+            for key in index_keys:
+                #print("size: ", key, codes_index_get_size(iid, key))
+                key_vals = codes_index_get(iid, key)
+                key_vals = tuple(x for x in key_vals if x != 'undef')
+                #print(key_vals)
+                #print(" ".join(key_vals))
+                index_vals.append(key_vals)
 
-        #Need to copy parameters for surface layers
-        parameters = [235, 167, 168, 134, 137]
-        level = 0
-        type_of_level = 1
-        handle_fields(fin, mgid, _result_file, fields, parameters)
+            for prod in product(*index_vals):
+                #print('All products: ', end='')
+                for i in range(len(index_keys)):
+                    #print('Range:', index_keys[i], prod[i])
+                    #print("{} {}, ".format(index_keys[i], prod[i]), end='')
+                    codes_index_select(iid, index_keys[i], prod[i])
+                #print()
+                while 1:
+                    gid = codes_new_from_index(iid)
+                    if gid is None:
+                        break
+                    #print(" ".join(["%s=%s" % (key, codes_get(gid, key))
+                    #                for key in index_keys]))
+                    param = codes_get(gid, index_keys[0])
+                    #print("Doing param:",param)
+                    parameters = [172, 129, 235, 167, 168, 137, 130, 131, 132, 133, 134, 157]
+                    if param in parameters:
+                        LOG.debug("Doing param: %d",param)
+                        #copy_needed_field(gid, mgid)
+                        copy_needed_field(gid, fout)
 
-        #Need to copy parameters for all levels
-        parameters = [130, 131, 132, 133, 134, 157, 129]
-        handle_fields(fin, mgid, _result_file, fields, parameters)
-        fin.close()
+                    codes_release(gid)
+            codes_index_release(iid)
 
-        LOG.debug("Need to add 235 to this {}".format(_result_file))
-        filename_base = os.path.basename(filename)
-        filename_base_time = filename_base[3:]
-        filename_base_new = os.path.join(os.path.dirname(filename),"N1S" + filename_base_time)
-
-        LOG.debug("Using new filename: {}".format(filename_base_new))
-        fin, fields = scan_meta(filename_base_new)
-        parameters = [235]
-        handle_fields(fin, mgid, _result_file, fields, parameters)
-        fin.close()
-
-        fout = open(_result_file, 'w')
-        codes_grib_multi_write(mgid, fout)
-        codes_grib_multi_release(mgid)
+            #fout = open(_result_file, 'wb')
+            #codes_grib_multi_write(mgid, fout)
+            #codes_grib_multi_release(mgid)
  
-        fout.close()
-        os.rename(_result_file, result_file)
+            fout.close()
+            os.rename(_result_file, result_file)
+        except WrongLengthError as wle:
+            LOG.error("Something wrong with the data: %s", wle)
+            raise
 
         #In the end release the lock
         fcntl.flock(rfl, fcntl.LOCK_UN)

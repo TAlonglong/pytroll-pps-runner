@@ -301,7 +301,35 @@ def pps(options):
 
     LOG.info("First check if NWP data should be downloaded and prepared")
     now = datetime.utcnow()
-    update_nwp(now - timedelta(days=1), NWP_FLENS)
+    try:
+        module_name = options.get("nwp_handeling_module", "module")
+    except (NoSectionError, NoOptionError):
+        LOG.debug("No custom nwp_handeling_function provided i config file...")
+        LOG.debug("Use build in.")
+        update_nwp(now - timedelta(days=1), NWP_FLENS)
+    else:
+        LOG.debug("Use custom nwp_handeling_function provided i config file...")
+        LOG.debug("module_name = %s", str(module_name))
+        try:
+            name = "update_nwp"
+            name = name.replace("/", "")
+            LOG.debug("Try load function : {} from module: {}".format([name],module_name))
+            module = __import__(module_name, globals(), locals(), [name])
+        except ImportError as ie:
+            LOG.debug("Failed to import custom compositer for %s %s", str(name), str(ie))
+            #return []
+
+        try:
+            params = {}
+            params['starttime'] = now - timedelta(days=1)
+            params['nlengths'] = NWP_FLENS
+            params['options'] = OPTIONS
+            getattr(module, name)(params)
+            #LOG.debug("get_attr: {}".format(get_attr))
+        except AttributeError:
+            LOG.debug("Could not get attribute %s from %s", str(name), str(module))
+            #return []
+        
     LOG.info("Ready with nwp preparation...")
 
     listener_q = Queue()
