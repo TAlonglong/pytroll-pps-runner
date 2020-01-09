@@ -308,7 +308,8 @@ def ready2run(msg, files4pps, **kwargs):
             files4pps[sceneid].append(item)
 
     LOG.debug("files4pps: %s", str(files4pps[sceneid]))
-    if (msg.data['variant'] in ['EARS', ] and platform_name in SUPPORTED_METOP_SATELLITES):
+    if ((('variant' in msg.data and msg.data['variant'] in ['EARS', ]) or
+         ('antenna' in msg.data and msg.data['antenna'] in ['ears', ])) and platform_name in SUPPORTED_METOP_SATELLITES):
         LOG.info("EARS Metop data. Only require the HRPT/AVHRR level-1b file to be ready!")
     elif (platform_name in SUPPORTED_METOP_SATELLITES or
           platform_name in SUPPORTED_NOAA_SATELLITES):

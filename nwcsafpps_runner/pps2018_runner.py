@@ -54,6 +54,8 @@ from nwcsafpps_runner.publish_and_listen import FileListener, FilePublisher
 
 from nwcsafpps_runner.prepare_nwp import update_nwp
 
+from six.moves.configparser import NoSectionError, NoOptionError
+
 # from ppsRunAll import pps_run_all_serial
 # from ppsCmaskProb import pps_cmask_prob
 
@@ -95,13 +97,12 @@ class ThreadPool(object):
 
             self.jobs.remove(job_id)
             return result
-
         with self.lock:
-            if job_id in self.jobs:
+            if str(job_id) in self.jobs:
                 LOG.info("Job with id %s already running!", str(job_id))
                 return
-
-            self.jobs.add(job_id)
+            
+            self.jobs.add(str(job_id))
 
         thread = threading.Thread(group, new_target, name, args, kwargs)
         thread.start()
@@ -274,24 +275,47 @@ def check_threads(threads):
 def run_nwp_and_pps(scene, flens, publish_q, input_msg, options):
     """Run first the nwp-preparation and then pps. No parallel running here!"""
 
-    prepare_nwp4pps(flens)
+    prepare_nwp4pps(flens, options)
     pps_worker(scene, publish_q, input_msg, options)
 
     return
 
 
-def prepare_nwp4pps(flens):
+def prepare_nwp4pps(flens, options):
     """Prepare NWP data for pps"""
 
     starttime = datetime.utcnow() - timedelta(days=1)
     try:
+        module_name = options.get("nwp_handeling_module", "module")
+    except (NoSectionError, NoOptionError):
+        LOG.debug("No custom nwp_handeling_function provided i config file...")
+        LOG.debug("Use build in.")
         update_nwp(starttime, flens)
-        LOG.info("Ready with nwp preparation")
-        LOG.debug("Leaving prepare_nwp4pps...")
-    except:
-        LOG.exception("Something went wrong in update_nwp...")
-        raise
+    else:
+        LOG.debug("Use custom nwp_handeling_function provided i config file...")
+        LOG.debug("module_name = %s", str(module_name))
+        try:
+            name = "update_nwp"
+            name = name.replace("/", "")
+            LOG.debug("Try load function : {} from module: {}".format([name],module_name))
+            module = __import__(module_name, globals(), locals(), [name])
+        except ImportError as ie:
+            LOG.debug("Failed to import custom compositer for %s %s", str(name), str(ie))
+            #return []
 
+        try:
+            params = {}
+            params['starttime'] = starttime
+            params['nlengths'] = NWP_FLENS
+            params['options'] = options
+            getattr(module, name)(params)
+            #LOG.debug("get_attr: {}".format(get_attr))
+        except AttributeError:
+            LOG.debug("Could not get attribute %s from %s", str(name), str(module))
+            #return []
+
+    LOG.info("Ready with nwp preparation")
+    LOG.debug("Leaving prepare_nwp4pps...")
 
 def pps(options):
     """The PPS runner. Triggers processing of PPS main script once AAPP or CSPP
@@ -323,7 +347,7 @@ def pps(options):
             params = {}
             params['starttime'] = now - timedelta(days=1)
             params['nlengths'] = NWP_FLENS
-            params['options'] = OPTIONS
+            params['options'] = options
             getattr(module, name)(params)
             #LOG.debug("get_attr: {}".format(get_attr))
         except AttributeError:
