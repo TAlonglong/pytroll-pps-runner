@@ -231,6 +231,12 @@ def pps_worker(scene, publish_q, input_msg, options):
                 ppstime_con.sum_up_processing_times()
                 ppstime_con.write_xml()
 
+        nc_files = get_outputfiles(options['pps_outdir'],
+                                   SATELLITE_NAME[scene['platform_name']],
+                                   scene['orbit_number'],
+                                   nc_output=True,
+                                   h5_output=True)
+        LOG.info("PPS files: " + str(nc_files))
         # The PPS post-hooks takes care of publishing the PPS PGEs
         # For the XML files we keep the publishing from here:
         xml_files = get_outputfiles(pps_control_path,
@@ -240,7 +246,7 @@ def pps_worker(scene, publish_q, input_msg, options):
         LOG.info("PPS summary statistics files: " + str(xml_files))
 
         # Now publish:
-        publish_pps_files(input_msg, publish_q, scene, xml_files,
+        publish_pps_files(input_msg, publish_q, scene, nc_files + xml_files,
                           environment=MODE, servername=options['servername'],
                           station=options['station'])
 
