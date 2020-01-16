@@ -242,7 +242,7 @@ def ready2run(msg, files4pps, **kwargs):
 
     LOG.info("Sat and Sensor: " + str(msg.data['platform_name'])
              + " " + str(msg.data['sensor']))
-    if msg.data['sensor'] not in PPS_SENSORS:
+    if not all(elem in PPS_SENSORS for elem in msg.data['sensor']):
         LOG.info("Data from sensor " + str(msg.data['sensor']) +
                  " not needed by PPS " +
                  "Continue...")
@@ -255,7 +255,7 @@ def ready2run(msg, files4pps, **kwargs):
                 ' not required for MODIS PPS processing...')
             return False
     elif msg.data['platform_name'] in SUPPORTED_JPSS_SATELLITES:
-        if msg.data['sensor'] not in ['viirs', ]:
+        if not all(elem in ['viirs', ] for elem in msg.data['sensor']):
             LOG.info(
                 'Sensor ' + str(msg.data['sensor']) +
                 ' not required for S-NPP/VIIRS PPS processing...')
