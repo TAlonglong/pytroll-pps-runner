@@ -242,6 +242,8 @@ def ready2run(msg, files4pps, **kwargs):
 
     LOG.info("Sat and Sensor: " + str(msg.data['platform_name'])
              + " " + str(msg.data['sensor']))
+    if type(msg.data['sensor']) is not list:
+        msg.data['sensor'] = [msg.data['sensor']]
     if not all(elem in PPS_SENSORS for elem in msg.data['sensor']):
         LOG.info("Data from sensor " + str(msg.data['sensor']) +
                  " not needed by PPS " +
@@ -261,7 +263,7 @@ def ready2run(msg, files4pps, **kwargs):
                 ' not required for S-NPP/VIIRS PPS processing...')
             return False
     else:
-        if msg.data['sensor'] not in NOAA_METOP_PPS_SENSORNAMES:
+        if not all(elem in NOAA_METOP_PPS_SENSORNAMES for elem in msg.data['sensor']):
             LOG.info(
                 'Sensor ' + str(msg.data['sensor']) + ' not required...')
             return False
