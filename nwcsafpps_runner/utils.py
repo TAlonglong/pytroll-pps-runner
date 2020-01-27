@@ -220,6 +220,7 @@ def ready2run(msg, files4pps, **kwargs):
             uris = [(msg.data['uri'])]
         else:
             uris = [os.path.join(destination, msg.data['uid'])]
+        LOG.debug("FIXME Is message type file with uris %s",str(uris))
     else:
         LOG.debug(
             "Ignoring this type of message data: type = " + str(msg.type))
@@ -263,14 +264,17 @@ def ready2run(msg, files4pps, **kwargs):
                 ' not required for S-NPP/VIIRS PPS processing...')
             return False
     else:
+        LOG.debug("FIXME last else in supported platforms")
         if not all(elem in NOAA_METOP_PPS_SENSORNAMES for elem in msg.data['sensor']):
             LOG.info(
                 'Sensor ' + str(msg.data['sensor']) + ' not required...')
             return False
         required_mw_sensors = REQUIRED_MW_SENSORS.get(
             msg.data['platform_name'])
-        if (msg.data['sensor'] in required_mw_sensors and
+        LOG.debug("FIXME required mw sensors %s", str(required_mw_sensors))
+        if (all(elem in required_mw_sensors for elem in msg.data['sensor'])  and
                 msg.data['data_processing_level'] != '1C'):
+            LOG.debug("FIXME passing all elem etc. and preocessing level not 1C")
             if msg.data['data_processing_level'] == '1c':
                 LOG.warning("Level should be in upper case!")
             else:
@@ -278,6 +282,8 @@ def ready2run(msg, files4pps, **kwargs):
                          str(msg.data['sensor']) + ' ' +
                          str(msg.data['data_processing_level']))
                 return False
+        else:
+            LOG.debug("In here for some reason, %s %s", required_mw_sensors, msg.data['sensor'])
 
     # The orbit number is mandatory!
     orbit_number = int(msg.data['orbit_number'])
