@@ -215,6 +215,15 @@ def ready2run(msg, files4pps, **kwargs):
             for dataset in msg.data['collection']:
                 uris.extend([mda['uri'] for mda in dataset['dataset']])
 
+    elif (msg.type == 'dataset' and
+            msg.data['platform_name'] in SUPPORTED_NOAA_SATELLITES + SUPPORTED_METOP_SATELLITES):
+        LOG.info('Dataset: ' + str(msg.data['dataset']))
+        LOG.info('Got a dataset on an METOP or NOAA satellite')
+        LOG.info('\t ...thus we can assume we have everything we need for PPS')
+        #Be sure data_processing_level is 1C as this is used to check MW sensors.
+        msg.data['data_processing_level'] = '1C'
+        for obj in msg.data['dataset']:
+            uris.append(obj['uri'])
     elif msg.type == 'file':
         if destination == None:
             uris = [(msg.data['uri'])]
@@ -272,9 +281,9 @@ def ready2run(msg, files4pps, **kwargs):
         required_mw_sensors = REQUIRED_MW_SENSORS.get(
             msg.data['platform_name'])
         LOG.debug("FIXME required mw sensors %s", str(required_mw_sensors))
-        if (all(elem in required_mw_sensors for elem in msg.data['sensor'])  and
+        if (all(elem in msg.data['sensor'] for elem in required_mw_sensors)  and
                 msg.data['data_processing_level'] != '1C'):
-            LOG.debug("FIXME passing all elem etc. and preocessing level not 1C")
+            LOG.debug("FIXME passing all elem etc. and preprocessing level not 1C")
             if msg.data['data_processing_level'] == '1c':
                 LOG.warning("Level should be in upper case!")
             else:
