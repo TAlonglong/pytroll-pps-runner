@@ -95,7 +95,7 @@ class ThreadPool(object):
             with self.sema:
                 result = target(*args, **kwargs)
 
-            self.jobs.remove(job_id)
+            self.jobs.remove(str(job_id))
             return result
         with self.lock:
             if str(job_id) in self.jobs:
