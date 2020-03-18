@@ -235,6 +235,10 @@ def ready2run(msg, files4pps, **kwargs):
             "Ignoring this type of message data: type = " + str(msg.type))
         return False
 
+    if not uris:
+        LOG.warning('uris list is empty. Can not continue.')
+        return False
+
     try:
         level1_files = check_uri(uris)
     except IOError:
