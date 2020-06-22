@@ -91,7 +91,7 @@ class FilePublisher(threading.Thread):
         self.publish_topic = publish_topic
         self.runner_name = kwargs.get('runner_name', 'pps_runner')
         self.nameservers = kwargs.get('nameservers').split(',')
-        if isinstance(self.nameservers) not in list:
+        if not isinstance(self.nameservers, list):
             self.nameservers = [self.nameservers]
 
     def stop(self):
