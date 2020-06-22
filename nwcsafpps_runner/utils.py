@@ -549,6 +549,7 @@ def publish_pps_files(input_msg, publish_q, scene, result_files, **kwargs):
         if not to_send['sensor']:
             to_send['sensor'] = scene.get('sensor', None)
 
+        to_send['orig_platform_name'] = metadata['orig_platform_name']
         to_send['platform_name'] = scene['platform_name']
         to_send['orbit_number'] = scene['orbit_number']
         if result_file.endswith("xml"):
