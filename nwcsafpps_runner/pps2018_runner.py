@@ -232,9 +232,9 @@ def pps_worker(scene, publish_q, input_msg, options):
                 ppstime_con.write_xml()
 
         try:
-            _start_time = datetime.strptime(scene['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
+            _start_time = datetime.strptime(input_msg.data['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
         except:
-            _start_time = datetime.strptime(scene['start_time'], '%Y-%m-%dT%H:%M:%S')
+            _start_time = datetime.strptime(input_msg.data['start_time'], '%Y-%m-%dT%H:%M:%S')
         match_start_time = _start_time.strftime('%Y%m%dT%H%M')
         nc_files = get_outputfiles(options['pps_outdir'],
                                    SATELLITE_NAME[scene['platform_name']],
