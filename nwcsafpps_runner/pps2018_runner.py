@@ -231,11 +231,17 @@ def pps_worker(scene, publish_q, input_msg, options):
                 ppstime_con.sum_up_processing_times()
                 ppstime_con.write_xml()
 
+        try:
+            _start_time = datetime.strptime(scene['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
+        except:
+            _start_time = datetime.strptime(scene['start_time'], '%Y-%m-%dT%H:%M:%S')
+        match_start_time = _start_time.strftime('%Y%m%dT%H%M')
         nc_files = get_outputfiles(options['pps_outdir'],
                                    SATELLITE_NAME[scene['platform_name']],
                                    scene['orbit_number'],
                                    nc_output=True,
-                                   h5_output=True)
+                                   h5_output=True,
+                                   start_time=match_start_time)
         LOG.info("PPS files: " + str(nc_files))
         # The PPS post-hooks takes care of publishing the PPS PGEs
         # For the XML files we keep the publishing from here:

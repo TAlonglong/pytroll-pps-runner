@@ -471,6 +471,7 @@ def get_outputfiles(path, platform_name, orb, **kwargs):
     """
 
     filelist = []
+    start_time = kwargs.get('start_time', '*')
     h5_output = kwargs.get('h5_output')
     if h5_output:
         h5_output = (os.path.join(path, 'S_NWC') + '*' +
@@ -484,7 +485,7 @@ def get_outputfiles(path, platform_name, orb, **kwargs):
     if nc_output:
         nc_output = (os.path.join(path, 'S_NWC') + '*' +
                      str(METOP_NAME_LETTER.get(platform_name, platform_name)) +
-                     '_' + '%.5d' % int(orb) + '_*.nc')
+                     '_' + '%.5d' % int(orb) + '_' + '%s' % start_time + '*.nc')
         LOG.info(
             "Match string to do a file globbing on netcdf output files: " + str(nc_output))
         filelist = filelist + glob(nc_output)
